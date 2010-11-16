@@ -1,0 +1,10 @@
+Updates required
+----------------
+* labs/toggle-led-nodejs needs an LED toggling lab.
+* The s3/blep template needs a good background for the BeagleBoard.
+
+
+Labs that need to be created
+----------------------------
+* Using git history to learn how to customize various features.
+
