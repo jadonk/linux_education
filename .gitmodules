@@ -1,3 +1,6 @@
 [submodule "cloud9"]
 	path = cloud9
 	url = git@github.com:jadonk/cloud9.git
+[submodule "processing-js"]
+	path = processing-js
+	url = git@github.com:jeresig/processing-js.git
