@@ -1,0 +1,3 @@
+[submodule "cloud9"]
+	path = cloud9
+	url = git@github.com:jadonk/cloud9.git
