@@ -16,7 +16,7 @@ socket.on('message', function(data) {
  document.getElementById("output").innerHTML=data;
 });
 socket.on('disconnect', function(){
- document.getElementById("status").innerHTML="Disonnected";
+ document.getElementById("status").innerHTML="Disconnected";
 });
 
 function sendCommand() {
@@ -29,7 +29,7 @@ Command: <input type="text" name="command">
 </form>
 <h2>Status:</h2>
 <pre>
-<span id="status"><!--%STATUS%--></span>
+<span id="status">Not yet connected</span>
 </pre>
 <h2>Output:</h2>
 <pre>
