@@ -4,3 +4,6 @@
 [submodule "processing-js"]
 	path = processing-js
 	url = git@github.com:jeresig/processing-js.git
+[submodule "labs/peg-game-js"]
+	path = labs/peg-game-js
+	url = git@gist.github.com:793815.git
