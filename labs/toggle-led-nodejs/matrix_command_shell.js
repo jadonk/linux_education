@@ -8,6 +8,9 @@ var child_process = require('child_process');
 var path = require('path');
 var events = require('events');
 
+// hack
+process.chdir('labs/toggle-led-nodejs');
+
 // Spawn child process
 sys.puts('Spawning child process');
 var child = child_process.spawn('cat');
@@ -57,7 +60,7 @@ function loadHTMLFile(uri, res) {
    }
    fs.readFile(
     filename,
-    'text',
+    encoding='utf8',
     function(err, file) {
      if(err) {
       res.writeHead(500, {"Content-Type": "text/plain"});
@@ -100,8 +103,8 @@ var server = http.createServer(
   }
  }
 );
-if(!server.listen(3000)) {
- sys.puts('Server running at http://127.0.0.1:3000/');
+if(!server.listen(3001)) {
+ sys.puts('Server running at http://127.0.0.1:3001/');
 } else {
  sys.puts('Server failed to connect to socket');
 }
