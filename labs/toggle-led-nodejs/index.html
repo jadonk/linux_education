@@ -5,46 +5,34 @@
 <body>
 <h1>Matrix Command Shell</h1>
 <h2>Input:</h2>
-<form name="command" action="/">
-Command: <input type="text" name="command" />
-<input type="submit" value="Submit" />
+<script src="/socket.io/socket.io.js"></script> 
+<script type="text/javascript"><!-- 
+var socket = new io.Socket(null, {port: 3001, rememberTransport: false}); 
+socket.connect();
+socket.on('connect', function() {
+ document.getElementById("status").innerHTML="Connected";
+});
+socket.on('message', function(data) {
+ document.getElementById("output").innerHTML=data;
+});
+socket.on('disconnect', function(){
+ document.getElementById("status").innerHTML="Disonnected";
+});
+
+function sendCommand() {
+ socket.send(document.forms['command']['command'].value);
+}
+--></script>
+<form name="command" onsubmit="sendCommand(); return false">
+Command: <input type="text" name="command">
+<input type="submit" value="Send">
 </form>
+<h2>Status:</h2>
+<pre>
+<span id="status"><!--%STATUS%--></span>
+</pre>
 <h2>Output:</h2>
 <pre>
 <span id="output"><!--%OUTPUT%--></span>
-</pre>
-<script type="text/javascript"><!-- 
-var update = function(req) {
- if(req.readyState == 4) {
-  if(req.status == 200) {
-   document.getElementById("output").innerHTML=req.responseText;
-  }
-  req.go();
- }
-}
-var pollData = function() {
- var httpReq = new XMLHttpRequest();
- httpReq.onreadystatechange = function() { update(httpReq); };
- httpReq.go = function() {
-  httpReq.open("GET", "/event", true);
-  httpReq.send();
- }
- httpReq.go();
-};
-var sendCommand = function() {
- var command = document.forms['command'].command.value;
- var httpReq = new XMLHttpRequest();
- httpReq.open("POST", "/data?command=" + escape(command), false);
- httpReq.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
- httpReq.send();
- document.getElementById("output").innerHTML=httpReq.responseText;
-};
-document.forms['command'].onsubmit = function() {
- sendCommand();
- pollData();
- return(false);
-}
-pollData();
---></script>
 </body>
 </html>

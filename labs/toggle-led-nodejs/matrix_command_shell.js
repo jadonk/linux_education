@@ -7,6 +7,7 @@ var url = require('url');
 var child_process = require('child_process');
 var path = require('path');
 var events = require('events');
+var io = require('../../cloud9/support/socket.io');
 
 // hack
 process.chdir('labs/toggle-led-nodejs');
@@ -25,26 +26,6 @@ child.stdout.addListener(
   matrix.emitter.emit('data', matrix.data);
  }
 );
-matrix.getData = function(res, wait) {
- var myListener = {};
- myListener = function(data) {
-  sys.puts("Responding"); 
-  res.writeHead(200, {"Content-Type": "text/plain"});
-  res.write(matrix.data + data);
-  res.end();
-  if(wait) {
-   matrix.emitter.removeListener('data', myListener);
-  }
- };
- if(wait) {
-  sys.puts("Waiting for data");
-  matrix.emitter.addListener('data', myListener);
-  setTimeout(function() {sys.puts("Timeout"); myListener('');}, 10000);
- } else {
-  sys.puts("Not waiting");
-  myListener('');
- }
-}
 
 // Serve web page and notify user
 function loadHTMLFile(uri, res) {
@@ -77,6 +58,7 @@ function loadHTMLFile(uri, res) {
   }
  );
 }
+
 sys.puts('Creating server');
 var server = http.createServer(
  function(req, res) {
@@ -85,26 +67,43 @@ var server = http.createServer(
   var query = url.parse(req.url, true).query;
   var command = false;
   if(typeof(query) != 'undefined') {
-   //sys.puts("Request included query: " + query);
+   sys.puts("Request included query: " + query);
    if('command' in query) {
     command = query.command;
-    sys.puts("Query included command " + command);
+    sys.puts("Query included command :" + command);
     child.stdin.write(command + "\n");
    }
   }
   if(uri == '/') {
    loadHTMLFile('/index.html', res);
-  } else if(uri == '/data') {
-   setTimeout(function() { matrix.getData(res, false); }, 100);
-  } else if(uri == '/event') {
-   matrix.getData(res, true);
   } else {
    loadHTMLFile(uri, res);
   }
  }
 );
+
 if(!server.listen(3001)) {
  sys.puts('Server running at http://127.0.0.1:3001/');
 } else {
  sys.puts('Server failed to connect to socket');
 }
+
+// socket.io 
+var socket = io.listen(server)
+socket.on('connection', function(client) {
+ // new client is here! 
+ sys.puts("New client connected");
+ client.myListener = function(data) {
+  sys.puts("Sending message to client: " + data);
+  client.send(data);
+ };
+ matrix.emitter.addListener('data', client.myListener);
+ client.on('message', function(data) {
+  sys.puts("Got message from client:", data);
+  child.stdin.write(data + "\n");
+ });
+ client.on('disconnect', function() {
+  sys.puts("Client disconnected.");
+  matrix.emitter.removeListener('data', client.myListener);
+ }); 
+}); 
