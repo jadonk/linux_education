@@ -1,9 +1,8 @@
 <html>
 <head>
-<title>Matrix Command Shell</title>
+<title>Simple socket.io demo</title>
 </head>
 <body>
-<h1>Matrix Command Shell</h1>
 <h2>Input:</h2>
 <script src="/socket.io/socket.io.js"></script> 
 <script type="text/javascript"><!-- 
@@ -13,7 +12,7 @@ socket.on('connect', function() {
  document.getElementById("status").innerHTML="Connected";
 });
 socket.on('message', function(data) {
- document.getElementById("output").innerHTML=data;
+ document.getElementById("output").innerHTML+=data;
 });
 socket.on('disconnect', function(){
  document.getElementById("status").innerHTML="Disconnected";

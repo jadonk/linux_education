@@ -7,25 +7,11 @@ var url = require('url');
 var child_process = require('child_process');
 var path = require('path');
 var events = require('events');
-var io = require('../../cloud9/support/socket.io');
+var io = require('socket.io');
+var binary = require('binary');
 
 // hack
 process.chdir('labs/toggle-led-nodejs');
-
-// Spawn child process
-sys.puts('Spawning child process');
-var child = child_process.spawn('cat');
-var matrix = {};
-matrix.data = '';
-matrix.emitter = new events.EventEmitter;
-child.stdout.addListener(
- 'data',
- function (data) {
-  sys.puts('New data: ' + data);
-  matrix.data += data;
-  matrix.emitter.emit('data', data);
- }
-);
 
 // Serve web page and notify user
 function loadHTMLFile(uri, res) {
@@ -50,7 +36,7 @@ function loadHTMLFile(uri, res) {
       return;
      }
      res.writeHead(200, {"Content-Type": "text/html"});
-     var str = ("" + file).replace("<!--%OUTPUT%-->", matrix.data);
+     var str = ("" + file).replace("<!--%OUTPUT%-->", "");
      res.write(str);
      res.end();
     }
@@ -93,17 +79,45 @@ var socket = io.listen(server)
 socket.on('connection', function(client) {
  // new client is here! 
  sys.puts("New client connected");
- client.myListener = function(data) {
-  sys.puts("Sending message to client: " + data);
-  client.send(data);
- };
- matrix.emitter.addListener('data', client.myListener);
+
+ // Function for parsing and forwarding events
+ var myListener = function (data) {
+  var myData = new Buffer(data, encoding='binary');
+  //sys.puts("Got data: " + JSON.stringify(myData));
+  var myEvent = binary.parse(myData)
+   .word32lu('time1')
+   .word32lu('time2')
+   .word16lu('type')
+   .word16lu('code')
+   .word32lu('value')
+   .vars;
+  myEvent.time = myEvent.time1 + (myEvent.time2 / 1000000);
+  var myEventJSON = JSON.stringify(myEvent);
+  client.send(myEventJSON + "\n");
+  //sys.puts("Event: " + myEventJSON);
+};
+
+ // initiate read
+ var myStream = fs.createReadStream(
+  '/dev/input/event2',
+  {
+   'encoding': 'binary',
+   'bufferSize': 16
+  }
+ );
+ myStream.addListener('data', myListener);
+ myStream.addListener('error', function(error) {
+  sys.puts("Read error: " + error);
+ });
+ 
+ // on message
  client.on('message', function(data) {
   sys.puts("Got message from client:", data);
-  child.stdin.write(data + "\n");
  });
+ 
+ // on disconnect
  client.on('disconnect', function() {
   sys.puts("Client disconnected.");
-  matrix.emitter.removeListener('data', client.myListener);
  }); 
 }); 
+
