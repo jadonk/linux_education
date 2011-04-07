@@ -1,16 +1,31 @@
 <html>
-<!-- from http://processingjs.org/learning -->
 <head>
-  <script src="processing.js"></script>
+<title>Processing.js + socket.io demo</title>
 </head>
 <body>
-<h1>Processing.js</h1>
-<h2>Simple processing.js via JavaScript</h2>
-<p>Clock</p>
-
+<h1>Processing.js + socket.io demo</h1>
+<h2>Status:</h2>
+<p><span id="status">Not yet connected</span></p>
+<h2>Output:</h2>
 <p><canvas id="canvas1" width="200" height="200"></canvas></p>
+<pre>
+<span id="output"><!--%OUTPUT%--></span>
+</pre>
 
-<script id="script1" type="text/javascript">
+<script src="/socket.io/socket.io.js"></script> 
+<script src="processing.js"></script>
+<script type="text/javascript"><!-- 
+var socket = new io.Socket(null, {port: 3001, rememberTransport: false}); 
+socket.connect();
+socket.on('connect', function() {
+ document.getElementById("status").innerHTML="Connected";
+});
+socket.on('message', function(data) {
+ document.getElementById("output").innerHTML+=data;
+});
+socket.on('disconnect', function(){
+ document.getElementById("status").innerHTML="Disconnected";
+});
 
 // Simple way to attach js code to the canvas is by using a function
 function sketchProc(processing) {
@@ -51,8 +66,6 @@ var canvas = document.getElementById("canvas1");
 // attaching the sketchProc function to the canvas
 var p = new Processing(canvas, sketchProc);
 // p.exit(); to detach it
-</script>
-
-<div style="height: 0px; width: 0px; overflow: hidden;"></div>
+--></script>
 </body>
 </html>
