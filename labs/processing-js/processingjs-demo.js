@@ -9,6 +9,7 @@ var path = require('path');
 var events = require('events');
 var io = require('socket.io');
 var binary = require('binary');
+var buffer = require('buffer');
 
 // hack
 process.chdir('labs/processing-js');
@@ -50,16 +51,6 @@ var server = http.createServer(
  function(req, res) {
   var uri = url.parse(req.url).pathname;
   sys.puts("Got request for " + uri);
-  var query = url.parse(req.url, true).query;
-  var command = false;
-  if(typeof(query) != 'undefined') {
-   sys.puts("Request included query: " + query);
-   if('command' in query) {
-    command = query.command;
-    sys.puts("Query included command :" + command);
-    child.stdin.write(command + "\n");
-   }
-  }
   if(uri == '/') {
    loadFile('/index.html', res, "text/html");
   } else {
@@ -85,35 +76,28 @@ socket.on('connection', function(client) {
  // new client is here! 
  sys.puts("New client connected");
 
- // Function for parsing and forwarding events
- var myListener = function (data) {
-  var myData = new Buffer(data, encoding='binary');
-  //sys.puts("Got data: " + JSON.stringify(myData));
-  var myEvent = binary.parse(myData)
-   .word32lu('time1')
-   .word32lu('time2')
-   .word16lu('type')
-   .word16lu('code')
-   .word32lu('value')
-   .vars;
-  myEvent.time = myEvent.time1 + (myEvent.time2 / 1000000);
-  var myEventJSON = JSON.stringify(myEvent);
-  client.send(myEventJSON + "\n");
-  //sys.puts("Event: " + myEventJSON);
-};
-
  // initiate read
- var myStream = fs.createReadStream(
-  '/dev/input/event2',
-  {
-   'encoding': 'binary',
-   'bufferSize': 16
-  }
- );
- myStream.addListener('data', myListener);
- myStream.addListener('error', function(error) {
-  sys.puts("Read error: " + error);
- });
+ try {
+  var child = child_process.spawn(
+   "/usr/bin/arecord",
+   [
+    "-c1", "-r11025", "-fS8", "-traw", 
+    "--buffer-size=100", "--period-size=100", "-N"
+   ]
+  );
+  child.stdout.setEncoding('base64');
+  child.stdout.on('data', function(data) {
+   client.send(data);
+  });
+  child.stderr.on('data', function(data) {
+   sys.puts("arecord: " + data);
+  });
+  child.on('exit', function(code) {
+   sys.puts("arecord exited with value " + code);
+  });
+ } catch(err) {
+  sys.puts("arecord error: " + err);
+ }
  
  // on message
  client.on('message', function(data) {
@@ -122,6 +106,7 @@ socket.on('connection', function(client) {
  
  // on disconnect
  client.on('disconnect', function() {
+  child.kill('SIGHUP');
   sys.puts("Client disconnected.");
  }); 
 }); 

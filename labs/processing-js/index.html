@@ -7,7 +7,7 @@
 <h2>Status:</h2>
 <p><span id="status">Not yet connected</span></p>
 <h2>Output:</h2>
-<p><canvas id="canvas1" width="200" height="200"></canvas></p>
+<canvas id="canvas1" width="2000" height="1000"></canvas>
 <pre>
 <span id="output"><!--%OUTPUT%--></span>
 </pre>
@@ -15,57 +15,63 @@
 <script src="/socket.io/socket.io.js"></script> 
 <script src="processing.js"></script>
 <script type="text/javascript"><!-- 
+// Simple way to attach js code to the canvas is by using a function
+//var graphData = new Buffer(100);
+function sketchProc(processing) {
+ // Override draw function, by default it will be called 60 times per second
+ processing.draw = function() {
+  // determine Y
+  var rangeY = 127;
+  var centerY = processing.height / 2;
+  var scaleY = processing.height / (rangeY * 2);
+    
+  function drawGraph(numpoints, datapoints, weight) {
+   processing.strokeWeight(weight);
+   var stepX = processing.width / (numpoints - 1);
+   var lastX = 0, nextX = 0, lastY, nextY;
+   for(point in datapoints) {
+    nextY = centerY - (datapoints[point] * scaleY);
+    if (point != 0) {
+     processing.line(lastX, lastY, nextX, nextY);
+    }
+    lastX = nextX;
+    lastY = nextY;
+    nextX += stepX;
+   }
+  };
+
+  // erase background
+  processing.background(224);
+
+  // fill in the data
+  //drawGraph(100, graphData, 3);
+ };
+}
+
+var canvas = document.getElementById("canvas1");
+var p = new Processing(canvas, sketchProc);
+
 var socket = new io.Socket(null, {port: 3001, rememberTransport: false}); 
 socket.connect();
 socket.on('connect', function() {
  document.getElementById("status").innerHTML="Connected";
 });
+var average = 0;
+var avg_mult = 999/1000;
+var samp_mult = 1/1000;
 socket.on('message', function(data) {
- document.getElementById("output").innerHTML+=data;
+ var myData = window.atob(data);
+ average = (average * avg_mult) + (myData.length * samp_mult);
+ document.getElementById("output").innerHTML=
+  "Type: " + typeof(myData) + 
+  "\nLength: " + myData.length +
+  "\nAverage: " + average +
+  "\nData: " + data;
 });
 socket.on('disconnect', function(){
  document.getElementById("status").innerHTML="Disconnected";
+ p.exit();
 });
-
-// Simple way to attach js code to the canvas is by using a function
-function sketchProc(processing) {
-  // Override draw function, by default it will be called 60 times per second
-  processing.draw = function() {
-    // determine center and max clock arm length
-    var centerX = processing.width / 2, centerY = processing.height / 2;
-    var maxArmLength = Math.min(centerX, centerY);
-
-    function drawArm(position, lengthScale, weight) {      
-      processing.strokeWeight(weight);
-      processing.line(centerX, centerY, 
-        centerX + Math.sin(position * 2 * Math.PI) * lengthScale * maxArmLength,
-        centerY - Math.cos(position * 2 * Math.PI) * lengthScale * maxArmLength);
-    }
-
-    // erase background
-    processing.background(224);
-
-    var now = new Date();
-
-    // Moving hours arm by small increments
-    var hoursPosition = (now.getHours() % 12 + now.getMinutes() / 60) / 12;
-    drawArm(hoursPosition, 0.5, 5);
-
-    // Moving minutes arm by small increments
-    var minutesPosition = (now.getMinutes() + now.getSeconds() / 60) / 60;
-    drawArm(minutesPosition, 0.80, 3);
-
-    // Moving hour arm by second increments
-    var secondsPosition = now.getSeconds() / 60;
-    drawArm(secondsPosition, 0.90, 1);
-  };
-  
-}
-
-var canvas = document.getElementById("canvas1");
-// attaching the sketchProc function to the canvas
-var p = new Processing(canvas, sketchProc);
-// p.exit(); to detach it
 --></script>
 </body>
 </html>
