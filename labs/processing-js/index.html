@@ -7,49 +7,54 @@
 <h2>Status:</h2>
 <p><span id="status">Not yet connected</span></p>
 <h2>Output:</h2>
-<canvas id="canvas1" width="2000" height="1000"></canvas>
+<canvas id="canvas1"></canvas>
 <pre>
 <span id="output"><!--%OUTPUT%--></span>
 </pre>
 
 <script src="/socket.io/socket.io.js"></script> 
 <script src="processing.js"></script>
-<script type="text/javascript"><!-- 
-// Simple way to attach js code to the canvas is by using a function
-//var graphData = new Buffer(100);
-function sketchProc(processing) {
- // Override draw function, by default it will be called 60 times per second
- processing.draw = function() {
-  // determine Y
-  var rangeY = 127;
-  var centerY = processing.height / 2;
-  var scaleY = processing.height / (rangeY * 2);
-    
-  function drawGraph(numpoints, datapoints, weight) {
-   processing.strokeWeight(weight);
-   var stepX = processing.width / (numpoints - 1);
-   var lastX = 0, nextX = 0, lastY, nextY;
-   for(point in datapoints) {
-    nextY = centerY - (datapoints[point] * scaleY);
-    if (point != 0) {
-     processing.line(lastX, lastY, nextX, nextY);
-    }
-    lastX = nextX;
-    lastY = nextY;
-    nextX += stepX;
-   }
-  };
-
+<script type="text/javascript">
+var graphDataSize = 100;
+var graphData = new Array(graphDataSize);
+var sketchProc = function(p) {
+ p.frameRate(15);
+ p.size(900, 300);
+ 
+ var rangeY = 256;
+ var centerY = p.height / 2;
+ var scaleY = p.height / rangeY;
+ var stepX = p.width / (graphDataSize - 1);
+ 
+ // The draw function will be called frameRate times per second
+ p.draw = function() {
   // erase background
-  processing.background(224);
+  p.background(224);
 
-  // fill in the data
-  //drawGraph(100, graphData, 3);
+  // draw axis
+  p.stroke(25);
+  p.strokeWeight(1);
+  p.line(0, centerY, p.width, centerY);
+
+  // draw graph
+  p.stroke(0);
+  p.strokeWeight(3);
+  //p.line(0, centerY+1, p.width, centerY+1);
+  var lastX = 0, nextX = 0, lastY, nextY;
+  for(var point in graphData) {
+   nextY = centerY - (graphData[point] * scaleY);
+   if(point != 0) {
+    p.line(lastX, lastY, nextX, nextY);
+    lastX += stepX;
+   }
+   nextX += stepX;
+   lastY = nextY;
+  }
  };
 }
 
 var canvas = document.getElementById("canvas1");
-var p = new Processing(canvas, sketchProc);
+var processing = new Processing(canvas, sketchProc);
 
 var socket = new io.Socket(null, {port: 3001, rememberTransport: false}); 
 socket.connect();
@@ -57,21 +62,28 @@ socket.on('connect', function() {
  document.getElementById("status").innerHTML="Connected";
 });
 var average = 0;
-var avg_mult = 999/1000;
-var samp_mult = 1/1000;
+var avg_mult = 99/100;
+var samp_mult = 1/100;
 socket.on('message', function(data) {
  var myData = window.atob(data);
- average = (average * avg_mult) + (myData.length * samp_mult);
+ for(var i=0; i<graphDataSize; i++) {
+  var b = myData.charCodeAt(i);
+  if(b>=128) {
+   b = b-256;
+  }
+  window.graphData[i] = b;
+ }
+ average = (average * avg_mult) + (data.length * samp_mult);
  document.getElementById("output").innerHTML=
-  "Type: " + typeof(myData) + 
-  "\nLength: " + myData.length +
-  "\nAverage: " + average +
-  "\nData: " + data;
+ "Type: " + typeof(data) + 
+ "\nLength: " + data.length +
+ "\nAverage: " + average +
+ "\nData: " + window.graphData;
 });
 socket.on('disconnect', function(){
  document.getElementById("status").innerHTML="Disconnected";
  p.exit();
 });
---></script>
+</script>
 </body>
 </html>
