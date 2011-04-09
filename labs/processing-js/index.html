@@ -73,12 +73,6 @@ socket.on('message', function(data) {
   }
   window.graphData[i] = b;
  }
- average = (average * avg_mult) + (data.length * samp_mult);
- document.getElementById("output").innerHTML=
- "Type: " + typeof(data) + 
- "\nLength: " + data.length +
- "\nAverage: " + average +
- "\nData: " + window.graphData;
 });
 socket.on('disconnect', function(){
  document.getElementById("status").innerHTML="Disconnected";
