@@ -51,21 +51,7 @@ var server = http.createServer(
  function(req, res) {
   var uri = url.parse(req.url).pathname;
   sys.puts("Got request for " + uri);
-  var query = url.parse(req.url, true).query;
-  var command = false;
-  if(typeof(query) != 'undefined') {
-   sys.puts("Request included query: " + query);
-   if('command' in query) {
-    command = query.command;
-    sys.puts("Query included command :" + command);
-    child.stdin.write(command + "\n");
-   }
-  }
-  if(uri == '/') {
-   loadHTMLFile('/read-event.html', res);
-  } else {
-   loadHTMLFile(uri, res);
-  }
+  loadHTMLFile('/read-event.html', res);
  }
 );
 
@@ -83,8 +69,7 @@ socket.on('connection', function(client) {
 
  // Function for parsing and forwarding events
  var myListener = function (data) {
-  var myData = new Buffer(data, encoding='binary');
-  var myEvent = binary.parse(myData)
+  var myEvent = binary.parse(data)
    .word32lu('time1')
    .word32lu('time2')
    .word16lu('type')
@@ -100,7 +85,6 @@ socket.on('connection', function(client) {
  var myStream = fs.createReadStream(
   '/dev/input/event2',
   {
-   'encoding': 'binary',
    'bufferSize': 16
   }
  );
