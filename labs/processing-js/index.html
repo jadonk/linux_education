@@ -17,10 +17,10 @@
 <script src="/socket.io/socket.io.js"></script> 
 <script src="processing.js"></script>
 <script type="text/javascript">
-var graphDataSize = 100;
+var graphDataSize = 50;
 var graphData = new Array(graphDataSize);
 var sketchProc = function(p) {
- p.frameRate(7);
+ p.frameRate(10);
  p.size(600, 250);
  
  var rangeY = 256;
@@ -63,9 +63,6 @@ socket.connect();
 socket.on('connect', function() {
  document.getElementById("status").innerHTML="Connected";
 });
-var average = 0;
-var avg_mult = 99/100;
-var samp_mult = 1/100;
 socket.on('message', function(data) {
  var myData = window.atob(data);
  for(var i=0; i<graphDataSize; i++) {

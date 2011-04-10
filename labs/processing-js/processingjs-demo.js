@@ -107,7 +107,7 @@ socket.on('connection', function(client) {
   sys.puts("Got message from client:", data);
   if(data.match(/trigger/)) {
    child_process.exec(
-    "play -b1 -c1 -r8000 -n synth 10 sine create 200-500 0 0 vol 0.05",
+    "play -b1 -c1 -r8000 -n synth 10 sine create 200-800 0 0 vol 0.05",
     function (err, stdout, stderr) {}
    );
   }
