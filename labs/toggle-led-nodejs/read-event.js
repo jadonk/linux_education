@@ -4,14 +4,15 @@ var sys = require('sys');
 var http = require('http');
 var fs = require('fs');
 var url = require('url');
-var child_process = require('child_process');
 var path = require('path');
-var events = require('events');
 var io = require('socket.io');
 var binary = require('binary');
 
 // hack
-process.chdir('labs/toggle-led-nodejs');
+if(!("" + process.cwd()).match(/labs\/toggle-led-nodejs$/)) {
+ sys.puts("Changing directory from " + process.cwd());
+ process.chdir('labs/toggle-led-nodejs');
+}
 
 // Serve web page and notify user
 function loadHTMLFile(uri, res) {
@@ -61,7 +62,7 @@ var server = http.createServer(
    }
   }
   if(uri == '/') {
-   loadHTMLFile('/index.html', res);
+   loadHTMLFile('/read-event.html', res);
   } else {
    loadHTMLFile(uri, res);
   }
@@ -83,7 +84,6 @@ socket.on('connection', function(client) {
  // Function for parsing and forwarding events
  var myListener = function (data) {
   var myData = new Buffer(data, encoding='binary');
-  //sys.puts("Got data: " + JSON.stringify(myData));
   var myEvent = binary.parse(myData)
    .word32lu('time1')
    .word32lu('time2')
@@ -94,8 +94,7 @@ socket.on('connection', function(client) {
   myEvent.time = myEvent.time1 + (myEvent.time2 / 1000000);
   var myEventJSON = JSON.stringify(myEvent);
   client.send(myEventJSON + "\n");
-  //sys.puts("Event: " + myEventJSON);
-};
+ };
 
  // initiate read
  var myStream = fs.createReadStream(
