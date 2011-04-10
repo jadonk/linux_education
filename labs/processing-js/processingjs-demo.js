@@ -12,7 +12,10 @@ var binary = require('binary');
 var buffer = require('buffer');
 
 // hack
-process.chdir('labs/processing-js');
+if(!("" + process.cwd()).match(/labs\/processing-js$/)) {
+ sys.puts("Changing directory from " + process.cwd());
+ process.chdir('labs/processing-js');
+}
 
 // Serve web page and notify user
 function loadFile(uri, res, type) {
@@ -65,7 +68,7 @@ var server = http.createServer(
 );
 
 if(!server.listen(3001)) {
- sys.puts('Server running at http://127.0.0.1:3001/');
+ sys.puts('Server running');
 } else {
  sys.puts('Server failed to connect to socket');
 }
@@ -81,8 +84,8 @@ socket.on('connection', function(client) {
   var child = child_process.spawn(
    "/usr/bin/arecord",
    [
-    "-c1", "-r11025", "-fS8", "-traw", 
-    "--buffer-size=100", "--period-size=100", "-N"
+    "-c1", "-r8000", "-fS8", "-traw", 
+    "--buffer-size=200", "--period-size=200", "-N"
    ]
   );
   child.stdout.setEncoding('base64');
@@ -102,6 +105,12 @@ socket.on('connection', function(client) {
  // on message
  client.on('message', function(data) {
   sys.puts("Got message from client:", data);
+  if(data.match(/trigger/)) {
+   child_process.exec(
+    "play -b1 -c1 -r8000 -n synth 10 sine create 200-500 0 0 vol 0.05",
+    function (err, stdout, stderr) {}
+   );
+  }
  });
  
  // on disconnect

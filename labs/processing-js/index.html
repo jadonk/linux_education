@@ -4,6 +4,8 @@
 </head>
 <body>
 <h1>Processing.js + socket.io demo</h1>
+<h2>Command:</h2>
+<p><button onclick="trigger()">Trigger</button>
 <h2>Status:</h2>
 <p><span id="status">Not yet connected</span></p>
 <h2>Output:</h2>
@@ -18,8 +20,8 @@
 var graphDataSize = 100;
 var graphData = new Array(graphDataSize);
 var sketchProc = function(p) {
- p.frameRate(15);
- p.size(900, 300);
+ p.frameRate(7);
+ p.size(600, 250);
  
  var rangeY = 256;
  var centerY = p.height / 2;
@@ -74,10 +76,14 @@ socket.on('message', function(data) {
   window.graphData[i] = b;
  }
 });
-socket.on('disconnect', function(){
+socket.on('disconnect', function() {
  document.getElementById("status").innerHTML="Disconnected";
  p.exit();
 });
+
+trigger = function() {
+ socket.send("trigger");
+};
 </script>
 </body>
 </html>
