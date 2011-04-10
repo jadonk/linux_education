@@ -77,8 +77,8 @@ socket.on('connection', function(client) {
    .word32lu('value')
    .vars;
   myEvent.time = myEvent.time1 + (myEvent.time2 / 1000000);
-  var myEventJSON = JSON.stringify(myEvent);
-  client.send(myEventJSON + "\n");
+  var myEventJSON = JSON.stringify(myEvent) + "\n";
+  client.send(myEventJSON);
  };
 
  // initiate read
