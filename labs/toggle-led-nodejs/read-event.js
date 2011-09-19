@@ -4,28 +4,15 @@ var sys = require('sys');
 var http = require('http');
 var fs = require('fs');
 var url = require('url');
-var child_process = require('child_process');
 var path = require('path');
-var events = require('events');
-var io = require('../../cloud9/support/socket.io');
+var io = require('socket.io');
+var binary = require('binary');
 
 // hack
-process.chdir('labs/toggle-led-nodejs');
-
-// Spawn child process
-sys.puts('Spawning child process');
-var child = child_process.spawn('cat');
-var matrix = {};
-matrix.data = '';
-matrix.emitter = new events.EventEmitter;
-child.stdout.addListener(
- 'data',
- function (data) {
-  sys.puts('New data: ' + data);
-  matrix.data += data;
-  matrix.emitter.emit('data', data);
- }
-);
+if(!("" + process.cwd()).match(/labs\/toggle-led-nodejs$/)) {
+ sys.puts("Changing directory from " + process.cwd());
+ process.chdir('labs/toggle-led-nodejs');
+}
 
 // Serve web page and notify user
 function loadHTMLFile(uri, res) {
@@ -50,7 +37,7 @@ function loadHTMLFile(uri, res) {
       return;
      }
      res.writeHead(200, {"Content-Type": "text/html"});
-     var str = ("" + file).replace("<!--%OUTPUT%-->", matrix.data);
+     var str = ("" + file).replace("<!--%OUTPUT%-->", "");
      res.write(str);
      res.end();
     }
@@ -64,21 +51,7 @@ var server = http.createServer(
  function(req, res) {
   var uri = url.parse(req.url).pathname;
   sys.puts("Got request for " + uri);
-  var query = url.parse(req.url, true).query;
-  var command = false;
-  if(typeof(query) != 'undefined') {
-   sys.puts("Request included query: " + query);
-   if('command' in query) {
-    command = query.command;
-    sys.puts("Query included command :" + command);
-    child.stdin.write(command + "\n");
-   }
-  }
-  if(uri == '/') {
-   loadHTMLFile('/index.html', res);
-  } else {
-   loadHTMLFile(uri, res);
-  }
+  loadHTMLFile('/read-event.html', res);
  }
 );
 
@@ -93,17 +66,41 @@ var socket = io.listen(server)
 socket.on('connection', function(client) {
  // new client is here! 
  sys.puts("New client connected");
- client.myListener = function(data) {
-  sys.puts("Sending message to client: " + data);
-  client.send(data);
+
+ // Function for parsing and forwarding events
+ var myListener = function (data) {
+  var myEvent = binary.parse(data)
+   .word32lu('time1')
+   .word32lu('time2')
+   .word16lu('type')
+   .word16lu('code')
+   .word32lu('value')
+   .vars;
+  myEvent.time = myEvent.time1 + (myEvent.time2 / 1000000);
+  var myEventJSON = JSON.stringify(myEvent) + "\n";
+  client.send(myEventJSON);
  };
- matrix.emitter.addListener('data', client.myListener);
+
+ // initiate read
+ var myStream = fs.createReadStream(
+  '/dev/input/event2',
+  {
+   'bufferSize': 16
+  }
+ );
+ myStream.addListener('data', myListener);
+ myStream.addListener('error', function(error) {
+  sys.puts("Read error: " + error);
+ });
+ 
+ // on message
  client.on('message', function(data) {
   sys.puts("Got message from client:", data);
-  child.stdin.write(data + "\n");
  });
+ 
+ // on disconnect
  client.on('disconnect', function() {
   sys.puts("Client disconnected.");
-  matrix.emitter.removeListener('data', client.myListener);
  }); 
 }); 
+

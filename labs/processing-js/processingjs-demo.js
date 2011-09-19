@@ -7,28 +7,18 @@ var url = require('url');
 var child_process = require('child_process');
 var path = require('path');
 var events = require('events');
-var io = require('../../cloud9/support/socket.io');
+var io = require('socket.io');
+var binary = require('binary');
+var buffer = require('buffer');
 
 // hack
-process.chdir('labs/toggle-led-nodejs');
-
-// Spawn child process
-sys.puts('Spawning child process');
-var child = child_process.spawn('cat');
-var matrix = {};
-matrix.data = '';
-matrix.emitter = new events.EventEmitter;
-child.stdout.addListener(
- 'data',
- function (data) {
-  sys.puts('New data: ' + data);
-  matrix.data += data;
-  matrix.emitter.emit('data', data);
- }
-);
+if(!("" + process.cwd()).match(/labs\/processing-js$/)) {
+ sys.puts("Changing directory from " + process.cwd());
+ process.chdir('labs/processing-js');
+}
 
 // Serve web page and notify user
-function loadHTMLFile(uri, res) {
+function loadFile(uri, res, type) {
  var filename = path.join(process.cwd(), uri);
  path.exists(
   filename,
@@ -49,8 +39,8 @@ function loadHTMLFile(uri, res) {
       res.end();
       return;
      }
-     res.writeHead(200, {"Content-Type": "text/html"});
-     var str = ("" + file).replace("<!--%OUTPUT%-->", matrix.data);
+     res.writeHead(200, {"Content-Type": type});
+     var str = ("" + file).replace("<!--%OUTPUT%-->", "");
      res.write(str);
      res.end();
     }
@@ -64,26 +54,21 @@ var server = http.createServer(
  function(req, res) {
   var uri = url.parse(req.url).pathname;
   sys.puts("Got request for " + uri);
-  var query = url.parse(req.url, true).query;
-  var command = false;
-  if(typeof(query) != 'undefined') {
-   sys.puts("Request included query: " + query);
-   if('command' in query) {
-    command = query.command;
-    sys.puts("Query included command :" + command);
-    child.stdin.write(command + "\n");
-   }
-  }
   if(uri == '/') {
-   loadHTMLFile('/index.html', res);
+   loadFile('/index.html', res, "text/html");
   } else {
-   loadHTMLFile(uri, res);
+   if (uri.match(/\.js$/)) {
+    sys.puts("Got request for a JavaScript file.");
+    loadFile(uri, res, "text/javascript");
+   } else {
+    loadFile(uri, res, "text/html");
+   }
   }
  }
 );
 
 if(!server.listen(3001)) {
- sys.puts('Server running at http://127.0.0.1:3001/');
+ sys.puts('Server running');
 } else {
  sys.puts('Server failed to connect to socket');
 }
@@ -93,17 +78,45 @@ var socket = io.listen(server)
 socket.on('connection', function(client) {
  // new client is here! 
  sys.puts("New client connected");
- client.myListener = function(data) {
-  sys.puts("Sending message to client: " + data);
-  client.send(data);
- };
- matrix.emitter.addListener('data', client.myListener);
+
+ // initiate read
+ try {
+  var child = child_process.spawn(
+   "/usr/bin/arecord",
+   [
+    "-c1", "-r8000", "-fS8", "-traw", 
+    "--buffer-size=200", "--period-size=200", "-N"
+   ]
+  );
+  child.stdout.setEncoding('base64');
+  child.stdout.on('data', function(data) {
+   client.send(data);
+  });
+  child.stderr.on('data', function(data) {
+   sys.puts("arecord: " + data);
+  });
+  child.on('exit', function(code) {
+   sys.puts("arecord exited with value " + code);
+  });
+ } catch(err) {
+  sys.puts("arecord error: " + err);
+ }
+ 
+ // on message
  client.on('message', function(data) {
   sys.puts("Got message from client:", data);
-  child.stdin.write(data + "\n");
+  if(data.match(/trigger/)) {
+   child_process.exec(
+    "play -b1 -c1 -r8000 -n synth 10 sine create 200-800 0 0 vol 0.05",
+    function (err, stdout, stderr) {}
+   );
+  }
  });
+ 
+ // on disconnect
  client.on('disconnect', function() {
+  child.kill('SIGHUP');
   sys.puts("Client disconnected.");
-  matrix.emitter.removeListener('data', client.myListener);
  }); 
 }); 
+

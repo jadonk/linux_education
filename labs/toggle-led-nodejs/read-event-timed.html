@@ -3,9 +3,8 @@
 <title>Simple socket.io demo</title>
 </head>
 <body>
-<h2>Input:</h2>
 <script src="/socket.io/socket.io.js"></script> 
-<script type="text/javascript"><!-- 
+<script type="text/javascript">
 var socket = new io.Socket(null, {port: 3001, rememberTransport: false}); 
 socket.connect();
 socket.on('connect', function() {
@@ -13,19 +12,12 @@ socket.on('connect', function() {
 });
 socket.on('message', function(data) {
  document.getElementById("output").innerHTML+=data;
+ socket.send("ack");
 });
 socket.on('disconnect', function(){
  document.getElementById("status").innerHTML="Disconnected";
 });
-
-function sendCommand() {
- socket.send(document.forms['command']['command'].value);
-}
---></script>
-<form name="command" onsubmit="sendCommand(); return false">
-Command: <input type="text" name="command">
-<input type="submit" value="Send">
-</form>
+</script>
 <h2>Status:</h2>
 <pre>
 <span id="status">Not yet connected</span>
@@ -33,5 +25,6 @@ Command: <input type="text" name="command">
 <h2>Output:</h2>
 <pre>
 <span id="output"><!--%OUTPUT%--></span>
+</pre>
 </body>
 </html>
