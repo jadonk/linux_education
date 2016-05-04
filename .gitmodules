@@ -1,12 +1,12 @@
 [submodule "cloud9"]
 	path = cloud9
-	url = git://github.com/jadonk/cloud9.git
+	url = https://github.com/jadonk/cloud9.git
 [submodule "processing-js"]
 	path = processing-js
-	url = git://github.com/jeresig/processing-js.git
+	url = https://github.com/jeresig/processing-js.git
 [submodule "labs/peg-game-js"]
 	path = labs/peg-game-js
-	url = git://gist.github.com/793815.git
+	url = https://gist.github.com/793815.git
 [submodule "binary"]
 	path = binary
-	url = git://github.com/jadonk/node-binary.git
+	url = https://github.com/jadonk/node-binary.git
